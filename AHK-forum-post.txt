@@ -300,10 +300,10 @@ ARRAY_SPLICE(Arr, Start, Length?, Items*) {
 [/code]
 
 [color=#800000][size=150]Commentary[/size][/color][color=#000000][size=125]
-To use Array.Prototype.ForEach efectively, you should know how the [c]this[/c] parameter works, when it is to be used in [c]ForEach[/c], and when it should not be used. Here is an explanation and some examples.
+To use Array.Prototype.ForEach effectively, you should know how the [c]this[/c] parameter works, when it is to be used in [c]ForEach[/c], and when it should not be used. Here is an explanation and some examples.
 - If iterating over an array using a callback that is NOT a class method, you should leave [c]ThisArg[/c] unset.
 - If iterating over an array using a callback that is a BoundFunc created using [c]ObjBindMethod[/c], you should leave [c]ThisArg[/c] unset.
-- If iterating over an array using a callback that is a class method, you need to pass something to [c]ThisArg[/c]. This does not necessarily need to be the an instance object or the class object, but it could be. These are the scenarios to consider when defining the parameter:
+- If iterating over an array using a callback that is a class method, you need to pass something to [c]ThisArg[/c]. This does not necessarily need to be the instance object or the class object, but it could be. These are the scenarios to consider when defining the parameter:
 -- It could be any type of value that is referenced within the method using the [c]this[/c] keyword. Typically, this is the class object or instance object itself.
 -- If the callback method does not refer to [c]this[/c] at all, just pass any value, [c]0[/c] is fine, to [c]ThisArg[/c]. This is necessary to tell the function to use the correct loop.
 -- If iterating over an array using a callback that is a class method, and you want to modify what [c]this[/c] refers to within the function, you should pass an object to [c]ThisArg[/c] that you want [c]this[/c] to refer to within the function. This can be useful for testing a range of values against a function, when internally the function would normally use [c]this[/c] to refer to its parent object. This allows you to rewrite only the part of the code that's relevant to your test, perhaps saving you some time and lines of code.
