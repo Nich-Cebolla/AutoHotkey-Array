@@ -21,7 +21,7 @@ ARRAY_FIND(Arr, Callback) {
     }
 }
 
-Array.Prototype.DefineProp('ARRAY_FOR_EACH', {Call: ARRAY_FOR_EACH})
+Array.Prototype.DefineProp('ForEach', {Call: ARRAY_FOR_EACH})
 /**
  * @description - Implements Javascript's `array.forEach` method in AutoHotkey.
  * `Array.Prototype.ForEach` is used to do an action on every value in an array.
