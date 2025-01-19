@@ -1,4 +1,3 @@
-
 Array.Prototype.DefineProp('Find', {Call: ARRAY_FIND})
 /**
  * @description - Implements Javascript's `array.find` method in AutoHotkey.
@@ -49,7 +48,7 @@ ARRAY_FOR_EACH(Arr, Callback, ThisArg?) {
     }
 }
 
-Array.Prototype.DefineProp('IndexOf', {Call: ARRAY_INDEXOF})
+Array.Prototype.DefineProp('IndexOf', {Call: ARRAY_INDEX_OF})
 /**
  * @description - Searches an array for the input value.
  * @param {Array} Arr - The array to search. If calling this method from an array instance, skip
@@ -64,7 +63,7 @@ Array.Prototype.DefineProp('IndexOf', {Call: ARRAY_INDEXOF})
  * @returns {Integer} - The index of the first occurrence of the input value in the array. If the
  * value is not found, an empty string is returned.
  */
-ARRAY_INDEXOF(Arr, Item, Start := 1, Length?, StrictType := true, CaseSense := true) {
+ARRAY_INDEX_OF(Arr, Item, Start := 1, Length?, StrictType := true, CaseSense := true) {
     if IsObject(Item)
         throw TypeError('Objects cannot be compared by value. Define a hashing function to compare'
         ' objects, or use ``Find`` which searches an array using a callback function.', -1)
