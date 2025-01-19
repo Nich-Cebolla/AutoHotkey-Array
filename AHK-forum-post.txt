@@ -311,44 +311,44 @@ To use Array.Prototype.ForEach effectively, you should know how the [c]this[/c] 
 Examples:
 [/size][/color]
 [code]
+
 Arr := [1,2,,4,,6,,,9] ; Demonstrating it handles unset indices.
 Callback := MyFunc
-ForEach(Arr, Callback) ; Leave `ThisArg` unset.
+Arr.ForEach(Callback) ; Leave `ThisArg` unset.
 MyFunc(Item, *) {
     OutputDebug('`nItem: ' Item)
 }
 ; ~~~~~
+
 Arr := [1,2,,4,,6,,,9]
 ; For anonymous functions, also leave `ThisArg` unset.
-ForEach(Arr, (Item, Index, *) => OutputDebug('`nIndex: ' Index '`tItem: ' Item))
-Arr := [1,2,3,4,5,,6,,,7]
+Arr.ForEach((Item, Index, *) => OutputDebug('`nIndex: ' Index '`tItem: ' Item))
+; ~~~~~
+
+class Test {
+    static Call(Item, *) {
+        OutputDebug('`nItem: ' Item * 2)
+    }
+}
+
+Arr := [1,2,,4,,6,,,9]
 Callback := ObjBindMethod(Test, 'Call')
-ForEach(Arr, Callback) ; Leave `ThisArg` unset because it is already bound.
+Arr.ForEach(Callback) ; Leave `ThisArg` unset because it is already bound.
+; ~~~~~
 
 class Test {
     static Call(Item, *) {
         OutputDebug('`nItem: ' Item * 2)
     }
 }
-; ~~~~~
-Arr := [1,2,3,4,5,,6,,,7]
+
+Arr := [1,2,,4,,6,,,9]
 Callback := Test.Call
-; `ThisArg` requires a value because it is not bound, but the value is irrelevant because `this`
-; is not referenced in the function. The value is only needed to direct `ForEach` to use the
+; `ThisArg` requires a value because the callback is not bound, but the value is irrelevant because
+; `this` is not referenced in the function. The value is only needed to direct `ForEach` to use the
 ; correct loop, else your function will not work as intended.
-ForEach(Arr, Callback, 0)
-
-class Test {
-    static Call(Item, *) {
-        OutputDebug('`nItem: ' Item * 2)
-    }
-}
+Arr.ForEach(Callback, 0)
 ; ~~~~~
-Arr := [1,2,3,4,5,,6,,,7]
-Callback := Test.Call
-; We must pass the object `Test` because `this` is referenced within the function, and that
-; reference is intended to refer to `Test`.
-ForEach(Arr, Callback, Test)
 
 class Test {
     static Call(Item, *) {
@@ -356,13 +356,21 @@ class Test {
     }
     static factor := 2
 }
+
+Arr := [1,2,,4,,6,,,9]
+Callback := Test.Call
+; We must pass the object `Test` because `this` is referenced within the function, and that
+; reference is intended to refer to `Test`.
+Arr.ForEach(Callback, Test)
 ; ~~~~~
+
 Multiplier := { factor: 3 }
-Arr := [1,2,3,4,5,,6,,,7]
+Arr := [1,2,,4,,6,,,9]
 Callback  := Test.Call
-; We pass `Multiplier` as `ThisArg` to modify what `this` refers to within the function.
-; This allows us to test a new value against the function.
-ForEach(Arr, Callback, Multiplier)
+; Say, for example, we want to try a new value for `Item * this.factor` without modifying the `Test`
+; class itself. We can do this by defining some other object that has the property we want to
+; modify, and pass the object to `ThisArg`.
+Arr.ForEach(Callback, Multiplier)
 
 class Test {
     static Call(Item, *) {
