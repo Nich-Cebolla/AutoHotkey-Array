@@ -17,7 +17,6 @@
 [color=#800000][size=150]Array.ahk[/size][/color]
 
 [code]
-
 Array.Prototype.DefineProp('Find', {Call: ARRAY_FIND})
 /**
  * @description - Implements Javascript's `array.find` method in AutoHotkey.
@@ -54,16 +53,30 @@ Array.Prototype.DefineProp('ForEach', {Call: ARRAY_FOR_EACH})
  * - [Optional] The index of the current element being processed in the array.
  * - [Optional] The array `ForEach` was called upon.
  * The function does not need a return value, and if one exists it is ignored.
+ * @param {Any} [Default] - The value to use when an array index is unset. If `Default` is unset
+ * and `ForEach` encounters an unset index, that index is skipped.
  * @param {Object} [ThisArg] - The object to use as `this` when executing the callback.
  */
-ARRAY_FOR_EACH(Arr, Callback, ThisArg?) {
+ARRAY_FOR_EACH(Arr, Callback, Default?, ThisArg?) {
     if IsSet(ThisArg) {
-        for Item in Arr {
-            Callback(ThisArg, Item??unset, A_Index, Arr)
+        if IsSet(Default) {
+            for Item in Arr
+                Callback(ThisArg, Item??Default, A_Index, Arr)
+        } else {
+            for Item in Arr {
+                if IsSet(Item)
+                    Callback(ThisArg, Item, A_Index, Arr)
+            }
         }
     } else {
-        for Item in Arr {
-            Callback(Item??unset, A_Index, Arr)
+        if IsSet(Default) {
+            for Item in Arr
+                Callback(Item??Default, A_Index, Arr)
+        } else {
+            for Item in Arr {
+                if IsSet(Item)
+                    Callback(Item, A_Index, Arr)
+            }
         }
     }
 }
