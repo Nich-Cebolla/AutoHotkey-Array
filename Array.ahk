@@ -191,7 +191,7 @@ ARRAY_REVERSE(Arr, Start := 1, Length?) {
     Result := []
     if !IsSet(Length)
         Length := Arr.Length - Start + 1
-    Result.Length := Length, End := Start + Length - 1, End++
+    Result.Length := Length, End := Start + Length
     while --End >= Start {
         if Arr.Has(End)
             Result[A_Index] := Arr[End]
