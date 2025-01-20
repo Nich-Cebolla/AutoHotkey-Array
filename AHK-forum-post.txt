@@ -311,70 +311,114 @@ To use Array.Prototype.ForEach effectively, you should know how the [c]this[/c] 
 
 Examples:
 [/size][/color]
+[color=#800000][size=150]ForEach-Examples.ahk[/size][/color]
 [code]
-Arr := [1,2,,4,,6,,,9] ; Demonstrating it handles unset indices.
-Callback := MyFunc
-ForEach(Arr, Callback) ; Leave `ThisArg` unset.
+
+#Include <Array>
+
+; Example 1: Standard usage.
+
 MyFunc(Item, *) {
     OutputDebug('`nItem: ' Item)
 }
-; ~~~~~
 Arr := [1,2,,4,,6,,,9]
+Callback := MyFunc
+Arr.ForEach(Callback) ; Leave `ThisArg` unset.
+
+; ~~~~~
+
+; Exampe 2: Using a default value.
+
+MyFunc2(Item, *) {
+    OutputDebug('`nItem: ' Item)
+}
+Arr := [1,2,,4,,6,,,9]
+Callback := MyFunc2
+Arr.ForEach(Callback, 'Not found!') ; Set a default value to be used for unset indices. Leave `ThisArg` unset.
+
+; ~~~~~
+
+; Example 3: Using an anonymous function.
+
 ; For anonymous functions, also leave `ThisArg` unset.
-ForEach(Arr, (Item, Index, *) => OutputDebug('`nIndex: ' Index '`tItem: ' Item))
-Arr := [1,2,3,4,5,,6,,,7]
-Callback := ObjBindMethod(Test, 'Call')
-ForEach(Arr, Callback) ; Leave `ThisArg` unset because it is already bound.
+Arr := [1,2,,4,,6,,,9]
+Arr.ForEach((Item, Index, *) => OutputDebug('`nIndex: ' Index '`tItem: ' Item))
 
-class Test {
+; Example 4: Using `ObjBindMethod` on a class object.
+
+class Test4 {
     static Call(Item, *) {
         OutputDebug('`nItem: ' Item * 2)
     }
 }
-; ~~~~~
-Arr := [1,2,3,4,5,,6,,,7]
-Callback := Test.Call
-; `ThisArg` requires a value because it is not bound, but the value is irrelevant because `this`
-; is not referenced in the function. The value is only needed to direct `ForEach` to use the
-; correct loop, else your function will not work as intended.
-ForEach(Arr, Callback, 0)
 
-class Test {
-    static Call(Item, *) {
-        OutputDebug('`nItem: ' Item * 2)
+Arr := [1,2,,4,,6,,,9]
+Callback := ObjBindMethod(Test4, 'Call')
+Arr.ForEach(Callback) ; Leave `ThisArg` unset because it is already bound to the function object.
+
+; ~~~~~
+
+; Example 5: Using a class method that is not bound, and the method does not refer to `this`.
+
+class Test5 {
+    static Call(Item, Index, Arr?) {
+        OutputDebug('`n`nItem: ' Item '`tIndex: ' Index '`t``this``: ' this '`tArray:`n' Arr.Join())
     }
 }
+
+Arr := ['a', 'b', 'c', 'd', 'e']
+Callback := Test5.Call
+; `ThisArg` requires a value because the first parameter in a class method is the hidden `this`, so
+; when `Array.Prototype.ForEach` calls the function object, the first parameter which it passes
+; to the callback is going to be consumed by `this`. A good way to visualize this is to open this
+; in a debugger and see which values are passed to `Test.Call`. Try one without the 0 in the
+; `ThisArg` parameter, and see how it works. What you will see is that the first parameter
+; is consumed by `this`, which in a typical function call, you wouldn't notice this, but within an
+; external function call, it becomes apparent.
+Arr.ForEach(Callback,, 0)
+
 ; ~~~~~
-Arr := [1,2,3,4,5,,6,,,7]
-Callback := Test.Call
+
+; Example 6: Using a class method that is not bound, and the method refers to `this`, and `this`
+; refers to the class.
+
+class Test6 {
+    static Call(Item, *) {
+        OutputDebug('`nItem: ' Item * this.factor)
+    }
+    static factor := 2
+}
+
+Arr := [1,2,,4,,6,,,9]
+Callback := Test6.Call
 ; We must pass the object `Test` because `this` is referenced within the function, and that
 ; reference is intended to refer to `Test`.
-ForEach(Arr, Callback, Test)
+Arr.ForEach(Callback,, Test6)
 
-class Test {
-    static Call(Item, *) {
-        OutputDebug('`nItem: ' Item * this.factor)
-    }
-    static factor := 2
-}
 ; ~~~~~
-Multiplier := { factor: 3 }
-Arr := [1,2,3,4,5,,6,,,7]
-Callback  := Test.Call
-; We pass `Multiplier` as `ThisArg` to modify what `this` refers to within the function.
-; This allows us to test a new value against the function.
-ForEach(Arr, Callback, Multiplier)
 
-class Test {
+; Example 7: Using a class method with a value that we want to override within our callback function.
+
+class Test7 {
     static Call(Item, *) {
         OutputDebug('`nItem: ' Item * this.factor)
     }
     static factor := 2
 }
+Multiplier := { factor: 3 }
+Arr := [1,2,,4,,6,,,9]
+Callback  := Test7.Call
+; We pass `Multiplier` as `ThisArg` to modify what `this` refers to within the function.
+; This allows us to test a new value against the function, without needing to modify our class object
+; or make other changes, simplifying the testing process.
+Arr.ForEach(Callback,, Multiplier)
+
 [/code]
 
 [color=#800000][size=150]Changelog[/size][/color]
 [color=#000000][size=120]2025-01-20[/size][/color]
+- [b]*Breaking*[/b] Updated ForEach to accept a `Default` parameter. This parameter is in the position where `ThisArg` was previously, and `ThisArg` is still the last but pushed back one space, so updating to this version would require moving the parameters.
 - Fixed inefficient code in ARRAY_REVERSE
+- Updated the ForEach examples to use class instance syntax, added details, clarified language, modified the structure of the examples to allow the entire set of examples to be run from within one document, added a separate [c]ForEach-Examples.ahk[/c] to the repository.
 [color=#000000][size=120]2025-01-18[/size][/color]
 - Uploaded library
