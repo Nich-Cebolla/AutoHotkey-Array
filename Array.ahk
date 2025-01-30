@@ -1,6 +1,6 @@
 Array.Prototype.DefineProp('Find', {Call: ARRAY_FIND})
 /**
- * @description - Implements Javascript's `array.find` method in AutoHotkey.
+ * @description - Implements Javascript's `array.prototype.find` method in AutoHotkey.
  * @param {Array} Arr - The array to search. If calling this method from an array instance, skip
  * this parameter completely, don't leave a space for it.
  * @param {Func|BoundFunc|Closure} Callback - The function to execute on each element in the array.
@@ -23,7 +23,7 @@ ARRAY_FIND(Arr, Callback) {
 
 Array.Prototype.DefineProp('ForEach', {Call: ARRAY_FOR_EACH})
 /**
- * @description - Implements Javascript's `array.forEach` method in AutoHotkey.
+ * @description - Implements Javascript's `array.prototype.forEach` method in AutoHotkey.
  * `Array.Prototype.ForEach` is used to do an action on every value in an array.
  * @param {Array} Arr - The array to iterate. If calling this method from an array instance, skip
  * this parameter completely, don't leave a space for it.
@@ -170,9 +170,48 @@ ARRAY_JOINA(Arr, Delimiter := ', ', &OutVar?, Start := 1, Length?, UnsetItemStri
     return Trim(OutVar, Delimiter)
 }
 
+Array.Prototype.DefineProp('Map', {Call: ARRAY_MAP})
+/**
+ * @description - Implements Javascript's `array.prototype.map` method in AutoHotkey.
+ * `Array.Prototype.Map` creates a new array with the results of the callback function. Each item
+ * in the array is passed to the function, including unset indices. The function should return
+ * the value that is to be addded to the array.
+ * @param {Array} Arr - The array to iterate. If calling this method from an array instance, skip
+ * this parameter completely, don't leave a space for it.
+ * @param {Func|BoundFunc|Closure} Callback - The function to execute on each element in the array.
+ * When `ThisArg` is used, the callback can accept two to four arguments. Else, it can accept one
+ * to three:
+ * - The value passed to `ThisArg`. (This is only when `ThisArg` is set).
+ * - The current element being processed in the array. Remember to allow this to be unset, either
+ * by defining a default value or simply using the `?` operator.
+ * - [Optional] The index of the current element being processed in the array.
+ * - [Optional] The array map was called upon.
+ * @param {Any} [ThisArg] - The value to pass as `this` when executing the callback. For a detailed
+ * description, see the document `ForEach-Examples.ahk` in the repository.
+ * @returns {Array} - A new array containing the values returned by the callback function.
+    @example
+        arr := [1,2,,4,,6,,,9]
+        Callback := (Item?, *) => IsSet(Item) ? Item * 2 : 'Not found!'
+        OutputDebug(arr.Map(Callback).Join(', ')) ; 2, 4, Not found!, 8, Not found!, 12, Not
+        ; found!, Not found!, 18
+    @
+ */
+ARRAY_MAP(Arr, Callback, ThisArg?) {
+    Result := []
+    Result.Length := Arr.Length
+    if IsSet(ThisArg) {
+        for Item in Arr
+            Result[A_Index] := Callback(ThisArg, Item ?? unset, A_Index, Arr)
+    } else {
+        for Item in Arr
+            Result[A_Index] := Callback(Item ?? unset, A_Index, Arr)
+    }
+    return Result
+}
+
 Array.Prototype.DefineProp('Reduce', {Call: ARRAY_REDUCE})
 /**
- * @description - Implements Javascript's `array.reduce` in AutoHotkey. `Array.Prototype.Reduce` is
+ * @description - Implements Javascript's `array.prototype.reduce` in AutoHotkey. `Array.Prototype.Reduce` is
  * used to iterate upon the values in an array, using a VarRef parameter to generate a cumulative
  * result.
  * @param {Array} Arr - The array to iterate. If calling this method from an array instance, skip
