@@ -1,5 +1,5 @@
 [color=#800000][size=150]Description[/size][/color]
-[color=#000000][size=125]Array.ahk is a library that implements common array methods. The implementations are optimized to require the least number of calculatons to produce the intended result. They are based on Javascript, but note that any methods that use an [c]end[/c] parameter in Javascript use a [c]length[/c] parameter here instead.[/size][/color]
+[color=#000000][size=125]Array.ahk is a library that implements common array methods. The implementations are optimized to require the least number of calculations to produce the intended result. They are based on Javascript, but note that any methods that use an [c]end[/c] parameter in Javascript use a [c]length[/c] parameter here instead.[/size][/color]
 
 [color=#800000][size=150]Github link[/size][/color]
 [color=#000000][size=125][url]https://github.com/Nich-Cebolla/AutoHotkey-Array[/url][/color]
@@ -12,7 +12,8 @@
 - Array.Prototype.Reduce
 - Array.Prototype.Reverse
 - Array.Prototype.Slice
-- Array.Prototype.Splice[/size][/color]
+- Array.Prototype.Splice
+- Array.Prototype.JoinA[/size][/color]
 
 [color=#800000][size=150]Array.ahk[/size][/color]
 
@@ -154,6 +155,37 @@ ARRAY_JOIN(Arr, Delimiter := ', ', &OutVar?, Start := 1, Length?) {
                 OutVar .= String(Item) Delimiter
         } else
             OutVar .= '""' Delimiter
+    }
+    return Trim(OutVar, Delimiter)
+}
+
+Array.Prototype.DefineProp('JoinA', {Call: ARRAY_JOINA})
+/**
+ * @description - Joins all elements of an array into a string.
+ * @param {Array} Arr - The array to join. If calling this method from an array instance, skip this
+ * parameter completely, don't leave a space for it.
+ * @param {String} [Delimiter=', '] - The string to separate each element of the array. If unset,
+ * the default delimiter is a comma followed by a space.
+ * @param {VarRef} [OutVar] - The variable to store the result in. This can be slightly faster for
+ * very large strings, compared to getting the string as a return value.
+ * @param {Integer} [Start=1] - The index to start the join from.
+ * @param {Integer} [Length] - The number of elements to join. If unset, the join will continue until
+ * the end of the array.
+ * @param {String} [UnsetItemString='""'] - The string to represent unset indices.
+ * @param {Func|BoundFunc|Closure} [ObjectCallback=(Item) => '{' Type(Item) '}] - A fuction which
+ * accepts the object as an argument and returns the string to add to the result string.
+ * @returns {String} - The joined string.
+ */
+ARRAY_JOINA(Arr, Delimiter := ', ', &OutVar?, Start := 1, Length?, UnsetItemString := '""', ObjectCallback := (Item) => '{' Type(Item) '}') {
+    OutVar := '', Start--
+    while ++Start <= (IsSet(Length) && Start + Length < Arr.Length ?  Start + Length : Arr.Length) {
+        if Arr.Has(Start) {
+            if IsObject(Item := Arr[Start])
+                OutVar .= ObjectCallback(Item) Delimiter
+            else
+                OutVar .= String(Item) Delimiter
+        } else
+            OutVar .= UnsetItemString Delimiter
     }
     return Trim(OutVar, Delimiter)
 }
@@ -429,8 +461,10 @@ Arr.ForEach(Callback,, Multiplier)
 [/code]
 
 [color=#800000][size=150]Changelog[/size][/color]
+[color=#000000][size=120]2025-01-29[/size][/color]
+- Added [c]JoinA[/c], which is the same as [c]Join[/c] except it exposes two additional components as input parameters: The value which is used for unset indices, and the value which is used for items that are objects.
 [color=#000000][size=120]2025-01-20[/size][/color]
-- [b]*Breaking*[/b] Updated ForEach to accept a `Default` parameter. This parameter is in the position where `ThisArg` was previously, and `ThisArg` is still the last but pushed back one space, so updating to this version would require moving the parameters.
+- [b]*Breaking*[/b] Updated ForEach to accept a [c]Default[/c] parameter. This parameter is in the position where [c]ThisArg[/c] was previously, and [c]ThisArg[/c] is still the last but pushed back one space, so updating to this version would require moving the parameters.
 - Fixed inefficient code in ARRAY_REVERSE
 - Updated the ForEach examples to use class instance syntax, added details, clarified language, modified the structure of the examples to allow the entire set of examples to be run from within one document, added a separate [c]ForEach-Examples.ahk[/c] to the repository.
 [color=#000000][size=120]2025-01-18[/size][/color]
