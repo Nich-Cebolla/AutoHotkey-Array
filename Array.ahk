@@ -139,6 +139,37 @@ ARRAY_JOIN(Arr, Delimiter := ', ', &OutVar?, Start := 1, Length?) {
     return Trim(OutVar, Delimiter)
 }
 
+Array.Prototype.DefineProp('JoinA', {Call: ARRAY_JOINA})
+/**
+ * @description - Joins all elements of an array into a string.
+ * @param {Array} Arr - The array to join. If calling this method from an array instance, skip this
+ * parameter completely, don't leave a space for it.
+ * @param {String} [Delimiter=', '] - The string to separate each element of the array. If unset,
+ * the default delimiter is a comma followed by a space.
+ * @param {VarRef} [OutVar] - The variable to store the result in. This can be slightly faster for
+ * very large strings, compared to getting the string as a return value.
+ * @param {Integer} [Start=1] - The index to start the join from.
+ * @param {Integer} [Length] - The number of elements to join. If unset, the join will continue until
+ * the end of the array.
+ * @param {String} [UnsetItemString='""'] - The string to represent unset indices.
+ * @param {Func|BoundFunc|Closure} [ObjectCallback=(Item) => '{' Type(Item) '}] - A fuction which
+ * accepts the object as an argument and returns the string to add to the result string.
+ * @returns {String} - The joined string.
+ */
+ARRAY_JOINA(Arr, Delimiter := ', ', &OutVar?, Start := 1, Length?, UnsetItemString := '""', ObjectCallback := (Item) => '{' Type(Item) '}') {
+    OutVar := '', Start--
+    while ++Start <= (IsSet(Length) && Start + Length < Arr.Length ?  Start + Length : Arr.Length) {
+        if Arr.Has(Start) {
+            if IsObject(Item := Arr[Start])
+                OutVar .= ObjectCallback(Item) Delimiter
+            else
+                OutVar .= String(Item) Delimiter
+        } else
+            OutVar .= UnsetItemString Delimiter
+    }
+    return Trim(OutVar, Delimiter)
+}
+
 Array.Prototype.DefineProp('Reduce', {Call: ARRAY_REDUCE})
 /**
  * @description - Implements Javascript's `array.reduce` in AutoHotkey. `Array.Prototype.Reduce` is
