@@ -18,3 +18,5 @@ Array.Prototype.Reverse
 Array.Prototype.Slice
 
 Array.Prototype.Splice
+
+Array.Prototype.JoinA
