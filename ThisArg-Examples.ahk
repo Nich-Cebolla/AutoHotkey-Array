@@ -1,4 +1,32 @@
 
+/*
+The following methods have a parameter `ThisArg`:
+- Array.Prototype.ForEach
+- Array.Prototype.Map
+To use these effectively, you should understand AutoHokey's implementation of `this`, when `ThisArg`
+should be used with these methods, and when it should be excluded. Here is the main considerations,
+and some examples. The examples use `ForEach` for demonstration, but the same principles apply to
+`Map`. Note, however, that `Map` does not use a default parameter, and unset indices within `Map`
+are passed to the callback as `unset`.
+
+When to leave `ThisArg` unset:
+- If iterating over an array using a callback that is NOT a class method.
+- If iterating over an array using a callback that is a BoundFunc created using `ObjBindMethod`.
+
+When to set `ThisArg`:
+If iterating over an array using a callback that is a class method, you need to pass something to
+`ThisArg`. This does not necessarily need to be the instance object or the class object, but it could
+be. These are the scenarios to consider when defining the parameter:
+- It could be any type of value that is referenced within the method using the `this` keyword.
+Typically, this is the class object or instance object itself.
+- If the callback method does not refer to `this` at all, just pass any value, `0` is fine, to
+`ThisArg`. This is necessary to tell the function to use the correct loop.
+- If you want to modify what `this` refers to within the function's scope (for example, during
+testing), pass an object to `ThisArg` that has the same properties as the object that is referenced
+within the function. This allows you to test different values without modifying the class object or
+making other changes. See example 7 for an example of this usage.
+*/
+
 #Include <Array>
 
 ; Example 1: Standard usage.
