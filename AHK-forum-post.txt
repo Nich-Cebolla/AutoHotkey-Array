@@ -5,22 +5,143 @@
 [color=#000000][size=125][url]https://github.com/Nich-Cebolla/AutoHotkey-Array[/url][/color]
 
 [color=#800000][size=150]Features[/size][/color][color=#000000][size=125]
-- Array.Prototype.Find
-- Array.Prototype.ForEach
-- Array.Prototype.IndexOf
-- Array.Prototype.Join
-- Array.Prototype.Reduce
-- Array.Prototype.Reverse
-- Array.Prototype.Slice
-- Array.Prototype.Splice
-- Array.Prototype.JoinA[/size][/color]
+- [b]Array.Prototype.Concat[/b] - Creates a new array by combining an array with any number of additional elements.
+- [b]Array.Prototype.Every[/b] - Iterates an array passing every value to a callback function (including unset indices), and returns false if the callback returns false once; true otherwise.
+- [b]Array.Prototype.Find[/b] - Iterates an array passing every value to a callback function (except for unset indices), and returns the item when the function returns true.
+- [b]Array.Prototype.ForEach[/b] - Iterates an array passing every value to a callback function (except unset indices).
+- [b]Array.Prototype.IndexOf[/b] - Iterates an array comparing every value (except unset indices) to an input value, and returns the index of the first item that matches the input value.
+- [b]Array.Prototype.Join[/b] - Iterates an array (including unset indices) adding each value to a string joined by a delimiter substring.
+- [b]Array.Prototype.JoinA[/b] - The same as [c]Join[/c], except [c]JoinA[/c] also exposes [c][UnsetItemString = ""][/c] as an input parameter, and exposes [c][ObjectCallback = (Item) => '{' Type(Item) '}"][/c] as an input parameter.
+- [b]Array.Prototype.Map[/b] - Creates a new array then iterates the original array (including unset indices), adding the results from a callback function to the new array.
+- [b]Array.Prototype.PushA[/b] - The same as [c]Array.Prototype.Push[/c] except this returns the array, allowing it to be chained with other array methods.
+- [b]Array.Prototype.Reduce[/b] - Iterates an array (excluding unset indices) passing each item to a callback function. The callback function must accept a VarRef parameter, and the callback function should cumulatively modify the VarRef. Returns the VarRef when [c]Reduce[/c] ends.
+- [b]Array.Prototype.Reverse[/b] - Creates a new array with the values from the original array in reverse order.
+- [b]Array.Prototype.Slice[/b] - Creates a new array as a segment of an original array.
+- [b]Array.Prototype.Splice[/b][/size][/color] - Mutates the original array, optionally removing some elements, and optionally adding some elements. The removed elements are returned as a new array.
 
 [color=#800000][size=150]Array.ahk[/size][/color]
 
 [code]
-Array.Prototype.DefineProp('Find', {Call: ARRAY_FIND})
+
+Object.Prototype.DefineProp('IsConcatSpreadable', { Value: false })
+Array.Prototype.DefineProp('IsConcatSpreadable', { Value: true })
+Array.Prototype.DefineProp('Concat', { Call: ARRAY_CONCAT })
 /**
- * @description - Implements Javascript's `array.find` method in AutoHotkey.
+ * @description - Implements Javascript's `array.prototype.concat` method in AutoHotkey. To mirror
+ * Javascript's implementation, this library adds on the property `IsConcatSpreadable` to all objects.
+ * For all objects except arrays, the value is `false`. For arrays, the value is `true`. When
+ * `Concat` is called, if an item is an object, `Concat` will check the value of `IsConcatSpreadable`.
+ * When true, it spreads the values of the item into the target array using variadic syntax.
+ * {@link https://www.autohotkey.com/docs/v2/Functions.htm#Variadic}. When false, the object is
+ * appended to the array as-is. However, just because an object's `IsConcatSpreadable` is `true`
+ * does not necessarily make the object spreadable. This is only an indicator to `Concat` that it
+ * should attempt to spread the object. AutoHotkey will attempt to spread the object as described by
+ * the above link. To put in other words, the object must have an `__Enum` method that returns the
+ * values to the first parameter, as it is called in its 1-parameter mode. The following built-in
+ * classes fulfill this condition by default:
+ * - Array
+ * - Map
+ * - Gui
+ * - Enumerator
+ * - RegExMatchInfo
+ * All other classes and all custom classes which do not inherit from one of these must define an
+ * `__Enum` method for it to be spreadable.
+ * `Concat` will only spread items up to the first depth level. Any further nested objects will be
+ * added as-is (more specifically, a reference to the object is added).
+ * @param {Array} Arr - The target array. If calling this method from an array instance, skip this
+ * parameter completely, don't leave a space for it.
+ * @param {Any:Variadic} Items - The items to add to the array.
+ * @returns {Array} - A new array containing the values of the target array and the input items.
+ * `Concat` does not mutate the original array.
+    @example
+        class MyClass {
+            __New(Items*) {
+                this.__Item := Array(Items*)
+                this.IsConcatSpreadable := true
+            }
+            __Enum(VarCount) {
+                i := 0
+                if VarCount == 1
+                    return _Enum1
+                else
+                    return _Enum2
+                _Enum1(&a) {
+                    if ++i > this.__Item.Length
+                        return false
+                    a := this.__Item[i]
+                    return true
+                }
+                _Enum2(&a, &b) {
+                    if ++i > this.__Item.Length
+                        return false
+                    a := this.__Item[i]
+                    b := i
+                    return true
+                }
+            }
+        }
+
+        MyMyClass := MyClass(1, 2, 3, 4, 5)
+        MyArr := [6,7,8,9,10]
+        OutputDebug(MyArr.Concat(MyMyClass).Join(', ')) ; 6, 7, 8, 9, 10, 1, 2, 3, 4, 5
+        MyMyClass.IsConcatSpreadable := false
+        OutputDebug(MyArr.Concat(MyMyClass).Join(', ')) ; 6, 7, 8, 9, 10, {MyClass}
+    @
+ */
+ARRAY_CONCAT(Arr, Items*) {
+    Arr := Arr.Clone()
+    if !Items.Length
+        return Arr
+    for Item in Items {
+        if IsObject(Item) {
+            if Item.IsConcatSpreadable
+                Arr.Push(Item*)
+            else
+                Arr.Push(Item)
+        } else
+            Arr.Push(Item)
+    }
+    return Arr
+}
+
+Array.Prototype.DefineProp('Every', { Call: ARRAY_EVERY })
+
+/**
+ * @description - Implements Javascript's `array.prototype.every` method in AutoHotkey.
+ * `Array.Prototype.Every` is used to check if all elements in an array pass a certain condition.
+ * @param {Array} Arr - The array to iterate. If calling this method from an array instance, skip
+ * this parameter completely, don't leave a space for it.
+ * @param {Func|BoundFunc|Closure} Callback - The function to execute on each element in the array.
+ * The function should return a nonzero value when the condition is met. The function can accept
+ * one to three parameters:
+ * - The current element being processed in the array.
+ * - [Optional] The index of the current element being processed in the array.
+ * - [Optional] The array every was called upon.
+ * @param {Any} [ThisArg] - The value to pass as `this` when executing the callback. For a detailed
+ * description, see the document `ThisArg-Example.ahk` in the repository.
+ * @returns {Boolean} - True if all elements pass the condition, false otherwise.
+    @example
+        OutputDebug([1,2,,4,5].Every((Item?, *) => IsSet(Item) ? Item < 6 : true)) ; 1
+    @
+ */
+ARRAY_EVERY(Arr, Callback, ThisArg?) {
+    if IsSet(ThisArg) {
+        for Item in Arr {
+            if !Callback(ThisArg, Item ?? unset, A_Index, Arr)
+                return false
+        }
+    } else {
+        for Item in Arr {
+            if !Callback(Item ?? unset, A_Index, Arr)
+                return false
+        }
+    }
+    return true
+}
+
+Array.Prototype.DefineProp('Find', { Call: ARRAY_FIND })
+/**
+ * @description - Implements Javascript's `array.prototype.find` method in AutoHotkey.
  * @param {Array} Arr - The array to search. If calling this method from an array instance, skip
  * this parameter completely, don't leave a space for it.
  * @param {Func|BoundFunc|Closure} Callback - The function to execute on each element in the array.
@@ -41,9 +162,9 @@ ARRAY_FIND(Arr, Callback) {
     }
 }
 
-Array.Prototype.DefineProp('ForEach', {Call: ARRAY_FOR_EACH})
+Array.Prototype.DefineProp('ForEach', { Call: ARRAY_FOR_EACH })
 /**
- * @description - Implements Javascript's `array.forEach` method in AutoHotkey.
+ * @description - Implements Javascript's `array.prototype.forEach` method in AutoHotkey.
  * `Array.Prototype.ForEach` is used to do an action on every value in an array.
  * @param {Array} Arr - The array to iterate. If calling this method from an array instance, skip
  * this parameter completely, don't leave a space for it.
@@ -82,7 +203,7 @@ ARRAY_FOR_EACH(Arr, Callback, Default?, ThisArg?) {
     }
 }
 
-Array.Prototype.DefineProp('IndexOf', {Call: ARRAY_INDEX_OF})
+Array.Prototype.DefineProp('IndexOf', { Call: ARRAY_INDEX_OF })
 /**
  * @description - Searches an array for the input value.
  * @param {Array} Arr - The array to search. If calling this method from an array instance, skip
@@ -130,7 +251,7 @@ ARRAY_INDEX_OF(Arr, Item, Start := 1, Length?, StrictType := true, CaseSense := 
     }
 }
 
-Array.Prototype.DefineProp('Join', {Call: ARRAY_JOIN})
+Array.Prototype.DefineProp('Join', { Call: ARRAY_JOIN })
 /**
  * @description - Joins all elements of an array into a string. Note that unset indices are
  * represented as "" in the resulting string, and objects are represented as '{' Type(Object) '}'.
@@ -159,7 +280,7 @@ ARRAY_JOIN(Arr, Delimiter := ', ', &OutVar?, Start := 1, Length?) {
     return Trim(OutVar, Delimiter)
 }
 
-Array.Prototype.DefineProp('JoinA', {Call: ARRAY_JOINA})
+Array.Prototype.DefineProp('JoinA', { Call: ARRAY_JOINA })
 /**
  * @description - Joins all elements of an array into a string.
  * @param {Array} Arr - The array to join. If calling this method from an array instance, skip this
@@ -190,9 +311,65 @@ ARRAY_JOINA(Arr, Delimiter := ', ', &OutVar?, Start := 1, Length?, UnsetItemStri
     return Trim(OutVar, Delimiter)
 }
 
-Array.Prototype.DefineProp('Reduce', {Call: ARRAY_REDUCE})
+Array.Prototype.DefineProp('Map', { Call: ARRAY_MAP })
 /**
- * @description - Implements Javascript's `array.reduce` in AutoHotkey. `Array.Prototype.Reduce` is
+ * @description - Implements Javascript's `array.prototype.map` method in AutoHotkey.
+ * `Array.Prototype.Map` creates a new array with the results of the callback function. Each item
+ * in the array is passed to the function, including unset indices. The function should return
+ * the value that is to be addded to the array.
+ * @param {Array} Arr - The array to iterate. If calling this method from an array instance, skip
+ * this parameter completely, don't leave a space for it.
+ * @param {Func|BoundFunc|Closure} Callback - The function to execute on each element in the array.
+ * When `ThisArg` is used, the callback can accept two to four arguments. Else, it can accept one
+ * to three:
+ * - The value passed to `ThisArg`. (This is only when `ThisArg` is set).
+ * - The current element being processed in the array. Remember to allow this to be unset, either
+ * by defining a default value or simply using the `?` operator.
+ * - [Optional] The index of the current element being processed in the array.
+ * - [Optional] The array map was called upon.
+ * @param {Any} [ThisArg] - The value to pass as `this` when executing the callback. For a detailed
+ * description, see the document `ThisArg-Example.ahk` in the repository.
+ * @returns {Array} - A new array containing the values returned by the callback function.
+    @example
+        arr := [1,2,,4,,6,,,9]
+        Callback := (Item?, *) => IsSet(Item) ? Item * 2 : 'Not found!'
+        OutputDebug(arr.Map(Callback).Join(', ')) ; 2, 4, Not found!, 8, Not found!, 12, Not
+        ; found!, Not found!, 18
+    @
+ */
+ARRAY_MAP(Arr, Callback, ThisArg?) {
+    Result := []
+    Result.Length := Arr.Length
+    if IsSet(ThisArg) {
+        for Item in Arr
+            Result[A_Index] := Callback(ThisArg, Item ?? unset, A_Index, Arr)
+    } else {
+        for Item in Arr
+            Result[A_Index] := Callback(Item ?? unset, A_Index, Arr)
+    }
+    return Result
+}
+
+Array.Prototype.DefineProp('PushA', { Call: ARRAY_PUSHA })
+/**
+ * @description - This is the same as `Array.Prototype.Push`, except it also returns the array,
+ * allowing this method to be chained with others.
+ * @param {Array} Arr - The target array. If calling this method from an array instance, skip
+ * this parameter completely, don't leave a space for it.
+ * @param {Any:Variadic} Item - The items to add to the array.
+    @example
+        OutputDebug([1,2,3,4].PushA(5,6,7,8).Join(', ')) ; 1, 2, 3, 4, 5, 6, 7, 8
+    @
+ */
+ARRAY_PUSHA(Arr, Item*) {
+    static ARRAY_PROTOTYPE_PUSH := Array.Prototype.Push
+    ARRAY_PROTOTYPE_PUSH(Arr, Item*)
+    return Arr
+}
+
+Array.Prototype.DefineProp('Reduce', { Call: ARRAY_REDUCE })
+/**
+ * @description - Implements Javascript's `array.prototype.reduce` in AutoHotkey. `Array.Prototype.Reduce` is
  * used to iterate upon the values in an array, using a VarRef parameter to generate a cumulative
  * result.
  * @param {Array} Arr - The array to iterate. If calling this method from an array instance, skip
@@ -242,7 +419,7 @@ ARRAY_REDUCE(Arr, Callback, InitialValue?, Default?) {
     }
 }
 
-Array.Prototype.DefineProp('Reverse', {Call: ARRAY_REVERSE})
+Array.Prototype.DefineProp('Reverse', { Call: ARRAY_REVERSE })
 /**
  * @description - Reverses the order of the elements in an array.
  * @param {Array} Arr - The array to reverse. If calling this method from an array instance, skip
@@ -264,7 +441,7 @@ ARRAY_REVERSE(Arr, Start := 1, Length?) {
     return Result
 }
 
-Array.Prototype.DefineProp('Slice', {Call: ARRAY_SLICE})
+Array.Prototype.DefineProp('Slice', { Call: ARRAY_SLICE })
 /**
  * @description - Extracts a section of an array and returns a new array. Does not mutate the
  * original array.
@@ -285,7 +462,7 @@ ARRAY_SLICE(Arr, Start := 1, Length?) {
     return Result
 }
 
-Array.Prototype.DefineProp('Splice', {Call: ARRAY_SPLICE})
+Array.Prototype.DefineProp('Splice', { Call: ARRAY_SPLICE })
 /**
  * @description - Adds and/or removes elements from an array. Mutates the original array and returns
  * the removed values.
@@ -345,19 +522,57 @@ ARRAY_SPLICE(Arr, Start, Length?, Items*) {
 
 [/code]
 
-[color=#800000][size=150]Commentary[/size][/color][color=#000000][size=125]
-To use Array.Prototype.ForEach effectively, you should know how the [c]this[/c] parameter works, when it is to be used in [c]ForEach[/c], and when it should not be used. Here is an explanation and some examples.
-- If iterating over an array using a callback that is NOT a class method, you should leave [c]ThisArg[/c] unset.
-- If iterating over an array using a callback that is a BoundFunc created using [c]ObjBindMethod[/c], you should leave [c]ThisArg[/c] unset.
-- If iterating over an array using a callback that is a class method, you need to pass something to [c]ThisArg[/c]. This does not necessarily need to be the instance object or the class object, but it could be. These are the scenarios to consider when defining the parameter:
--- It could be any type of value that is referenced within the method using the [c]this[/c] keyword. Typically, this is the class object or instance object itself.
--- If the callback method does not refer to [c]this[/c] at all, just pass any value, [c]0[/c] is fine, to [c]ThisArg[/c]. This is necessary to tell the function to use the correct loop.
--- If iterating over an array using a callback that is a class method, and you want to modify what [c]this[/c] refers to within the function, you should pass an object to [c]ThisArg[/c] that you want [c]this[/c] to refer to within the function. This can be useful for testing a range of values against a function, when internally the function would normally use [c]this[/c] to refer to its parent object. This allows you to rewrite only the part of the code that's relevant to your test, perhaps saving you some time and lines of code.
+[color=#800000][size=150]Remarks[/size][/color][color=#000000][size=125]
+The following methods have a parameter [c]ThisArg[/c]:
+- Array.Prototype.Every
+- Array.Prototype.ForEach
+- Array.Prototype.Map
+To use these effectively, you should understand AutoHokey's implementation of [c]this[/c], when [c]ThisArg[/c] should be used with these methods, and when it should be excluded. Here is the main considerations, and some examples. The examples use [c]ForEach[/c] for demonstration, but the same principles apply to all. Note, however, that [c]ForEach[/c] accepts a [c]default[/c] parameter which takes the place of unset indices. Array methods which do not use [c]Default[/c] must define the callback such that the [c]Item[/c] is optional.
+
+When to leave [c]ThisArg[/c] unset:
+- If iterating over an array using a callback that is NOT a class method.
+- If iterating over an array using a callback that is a BoundFunc created using [c]ObjBindMethod[/c].
+
+When to set [c]ThisArg[/c]:
+If iterating over an array using a callback that is a class method, you need to pass something to [c]ThisArg[/c]. This does not necessarily need to be the instance object or the class object, but it could be. These are the scenarios to consider when defining the parameter:
+- It could be any type of value that is referenced within the method using the [c]this[/c] keyword. Typically, this is the class object or instance object itself.
+- If the callback method does not refer to [c]this[/c] at all, just pass any value, [c]0[/c] is fine, to [c]ThisArg[/c]. This is necessary to tell the function to use the correct loop.
+- If you want to modify what [c]this[/c] refers to within the function's scope (for example, during testing), pass an object to [c]ThisArg[/c] that has the same properties as the object that is referenced within the function. This allows you to test different values without modifying the class object or making other changes. See example 7 for an example of this usage.
 
 Examples:
 [/size][/color]
-[color=#800000][size=150]ForEach-Examples.ahk[/size][/color]
+[color=#800000][size=150]ThisArg-Examples.ahk[/size][/color]
 [code]
+
+/*
+The following methods have a parameter `ThisArg`:
+- Array.Prototype.Every
+- Array.Prototype.ForEach
+- Array.Prototype.Map
+To use these effectively, you should understand AutoHokey's implementation of `this`, when `ThisArg`
+should be used with these methods, and when it should be excluded. Here is the main considerations,
+and some examples. The examples use `ForEach` for demonstration, but the same principles apply to
+`Map`. Note, however, that `ForEach` accepts a `default` parameter which takes the place
+of unset indices. Array methods which do not use `Default` must define the callback such that
+the `Item` is optional.
+
+When to leave `ThisArg` unset:
+- If iterating over an array using a callback that is NOT a class method.
+- If iterating over an array using a callback that is a BoundFunc created using `ObjBindMethod`.
+
+When to set `ThisArg`:
+If iterating over an array using a callback that is a class method, you need to pass something to
+`ThisArg`. This does not necessarily need to be the instance object or the class object, but it could
+be. These are the scenarios to consider when defining the parameter:
+- It could be any type of value that is referenced within the method using the `this` keyword.
+Typically, this is the class object or instance object itself.
+- If the callback method does not refer to `this` at all, just pass any value, `0` is fine, to
+`ThisArg`. This is necessary to tell the function to use the correct loop.
+- If you want to modify what `this` refers to within the function's scope (for example, during
+testing), pass an object to `ThisArg` that has the same properties as the object that is referenced
+within the function. This allows you to test different values without modifying the class object or
+making other changes. See example 7 for an example of this usage.
+*/
 
 #Include <Array>
 
@@ -461,6 +676,13 @@ Arr.ForEach(Callback,, Multiplier)
 [/code]
 
 [color=#800000][size=150]Changelog[/size][/color]
+[color=#000000][size=120]2025-02-01[/size][/color]
+- Added Concat
+- Added Every
+- Added Map
+- Added PushA
+- Renamed "ForEach-Examples.ahk" to "ThisArg-Examples.ahk"
+- Adjusted then added the explanatory text to "ThisArg-Examples.ahk"
 [color=#000000][size=120]2025-01-29[/size][/color]
 - Added [c]JoinA[/c], which is the same as [c]Join[/c] except it exposes two additional components as input parameters: The value which is used for unset indices, and the value which is used for items that are objects.
 [color=#000000][size=120]2025-01-20[/size][/color]
