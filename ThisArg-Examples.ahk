@@ -1,13 +1,15 @@
 
 /*
 The following methods have a parameter `ThisArg`:
+- Array.Prototype.Every
 - Array.Prototype.ForEach
 - Array.Prototype.Map
 To use these effectively, you should understand AutoHokey's implementation of `this`, when `ThisArg`
 should be used with these methods, and when it should be excluded. Here is the main considerations,
 and some examples. The examples use `ForEach` for demonstration, but the same principles apply to
-`Map`. Note, however, that `Map` does not use a default parameter, and unset indices within `Map`
-are passed to the callback as `unset`.
+`Map`. Note, however, that `ForEach` accepts a `default` parameter which takes the place
+of unset indices. Array methods which do not use `Default` must define the callback such that
+the `Item` is optional.
 
 When to leave `ThisArg` unset:
 - If iterating over an array using a callback that is NOT a class method.
