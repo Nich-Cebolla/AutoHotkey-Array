@@ -1,4 +1,121 @@
-Array.Prototype.DefineProp('Find', {Call: ARRAY_FIND})
+
+Object.Prototype.DefineProp('IsConcatSpreadable', { Value: false })
+Array.Prototype.DefineProp('IsConcatSpreadable', { Value: true })
+Array.Prototype.DefineProp('Concat', { Call: ARRAY_CONCAT })
+/**
+ * @description - Implements Javascript's `array.prototype.concat` method in AutoHotkey. To mirror
+ * Javascript's implementation, this library adds on the property `IsConcatSpreadable` to all objects.
+ * For all objects except arrays, the value is `false`. For arrays, the value is `true`. When
+ * `Concat` is called, if an item is an object, `Concat` will check the value of `IsConcatSpreadable`.
+ * When true, it spreads the values of the item into the target array using variadic syntax.
+ * {@link https://www.autohotkey.com/docs/v2/Functions.htm#Variadic}. When false, the object is
+ * appended to the array as-is. However, just because an object's `IsConcatSpreadable` is `true`
+ * does not necessarily make the object spreadable. This is only an indicator to `Concat` that it
+ * should attempt to spread the object. AutoHotkey will attempt to spread the object as described by
+ * the above link. To put in other words, the object must have an `__Enum` method that returns the
+ * values to the first parameter, as it is called in its 1-parameter mode. The following built-in
+ * classes fulfill this condition by default:
+ * - Array
+ * - Map
+ * - Gui
+ * - Enumerator
+ * - RegExMatchInfo
+ * All other classes and all custom classes which do not inherit from one of these must define an
+ * `__Enum` method for it to be spreadable.
+ * `Concat` will only spread items up to the first depth level. Any further nested objects will be
+ * added as-is (more specifically, a reference to the object is added).
+ * @param {Array} Arr - The target array. If calling this method from an array instance, skip this
+ * parameter completely, don't leave a space for it.
+ * @param {Any:Variadic} Items - The items to add to the array.
+ * @returns {Array} - A new array containing the values of the target array and the input items.
+ * `Concat` does not mutate the original array.
+    @example
+        class MyClass {
+            __New(Items*) {
+                this.__Item := Array(Items*)
+                this.IsConcatSpreadable := true
+            }
+            __Enum(VarCount) {
+                i := 0
+                if VarCount == 1
+                    return _Enum1
+                else
+                    return _Enum2
+                _Enum1(&a) {
+                    if ++i > this.__Item.Length
+                        return false
+                    a := this.__Item[i]
+                    return true
+                }
+                _Enum2(&a, &b) {
+                    if ++i > this.__Item.Length
+                        return false
+                    a := this.__Item[i]
+                    b := i
+                    return true
+                }
+            }
+        }
+
+        MyMyClass := MyClass(1, 2, 3, 4, 5)
+        MyArr := [6,7,8,9,10]
+        OutputDebug(MyArr.Concat(MyMyClass).Join(', ')) ; 6, 7, 8, 9, 10, 1, 2, 3, 4, 5
+        MyMyClass.IsConcatSpreadable := false
+        OutputDebug(MyArr.Concat(MyMyClass).Join(', ')) ; 6, 7, 8, 9, 10, {MyClass}
+    @
+ */
+ARRAY_CONCAT(Arr, Items*) {
+    Arr := Arr.Clone()
+    if !Items.Length
+        return Arr
+    for Item in Items {
+        if IsObject(Item) {
+            if Item.IsConcatSpreadable
+                Arr.Push(Item*)
+            else
+                Arr.Push(Item)
+        } else
+            Arr.Push(Item)
+    }
+    return Arr
+}
+
+Array.Prototype.DefineProp('Every', { Call: ARRAY_EVERY })
+
+/**
+ * @description - Implements Javascript's `array.prototype.every` method in AutoHotkey.
+ * `Array.Prototype.Every` is used to check if all elements in an array pass a certain condition.
+ * @param {Array} Arr - The array to iterate. If calling this method from an array instance, skip
+ * this parameter completely, don't leave a space for it.
+ * @param {Func|BoundFunc|Closure} Callback - The function to execute on each element in the array.
+ * The function should return a nonzero value when the condition is met. The function can accept
+ * one to three parameters:
+ * - The current element being processed in the array.
+ * - [Optional] The index of the current element being processed in the array.
+ * - [Optional] The array every was called upon.
+ * @param {Any} [ThisArg] - The value to pass as `this` when executing the callback. For a detailed
+ * description, see the document `ThisArg-Example.ahk` in the repository.
+ * @returns {Boolean} - True if all elements pass the condition, false otherwise.
+    @example
+        OutputDebug([1,2,,4,5].Every((Item?, *) => IsSet(Item) ? Item < 6 : true)) ; 1
+    @
+ */
+ARRAY_EVERY(Arr, Callback, ThisArg?) {
+    if IsSet(ThisArg) {
+        for Item in Arr {
+            if !Callback(ThisArg, Item ?? unset, A_Index, Arr)
+                return false
+        }
+    } else {
+        for Item in Arr {
+            if !Callback(Item ?? unset, A_Index, Arr)
+                return false
+        }
+    }
+    return true
+}
+
+Array.Prototype.DefineProp('Find', { Call: ARRAY_FIND })
 /**
  * @description - Implements Javascript's `array.prototype.find` method in AutoHotkey.
  * @param {Array} Arr - The array to search. If calling this method from an array instance, skip
@@ -21,7 +138,7 @@ ARRAY_FIND(Arr, Callback) {
     }
 }
 
-Array.Prototype.DefineProp('ForEach', {Call: ARRAY_FOR_EACH})
+Array.Prototype.DefineProp('ForEach', { Call: ARRAY_FOR_EACH })
 /**
  * @description - Implements Javascript's `array.prototype.forEach` method in AutoHotkey.
  * `Array.Prototype.ForEach` is used to do an action on every value in an array.
@@ -62,7 +179,7 @@ ARRAY_FOR_EACH(Arr, Callback, Default?, ThisArg?) {
     }
 }
 
-Array.Prototype.DefineProp('IndexOf', {Call: ARRAY_INDEX_OF})
+Array.Prototype.DefineProp('IndexOf', { Call: ARRAY_INDEX_OF })
 /**
  * @description - Searches an array for the input value.
  * @param {Array} Arr - The array to search. If calling this method from an array instance, skip
@@ -110,7 +227,7 @@ ARRAY_INDEX_OF(Arr, Item, Start := 1, Length?, StrictType := true, CaseSense := 
     }
 }
 
-Array.Prototype.DefineProp('Join', {Call: ARRAY_JOIN})
+Array.Prototype.DefineProp('Join', { Call: ARRAY_JOIN })
 /**
  * @description - Joins all elements of an array into a string. Note that unset indices are
  * represented as "" in the resulting string, and objects are represented as '{' Type(Object) '}'.
@@ -139,7 +256,7 @@ ARRAY_JOIN(Arr, Delimiter := ', ', &OutVar?, Start := 1, Length?) {
     return Trim(OutVar, Delimiter)
 }
 
-Array.Prototype.DefineProp('JoinA', {Call: ARRAY_JOINA})
+Array.Prototype.DefineProp('JoinA', { Call: ARRAY_JOINA })
 /**
  * @description - Joins all elements of an array into a string.
  * @param {Array} Arr - The array to join. If calling this method from an array instance, skip this
@@ -170,7 +287,7 @@ ARRAY_JOINA(Arr, Delimiter := ', ', &OutVar?, Start := 1, Length?, UnsetItemStri
     return Trim(OutVar, Delimiter)
 }
 
-Array.Prototype.DefineProp('Map', {Call: ARRAY_MAP})
+Array.Prototype.DefineProp('Map', { Call: ARRAY_MAP })
 /**
  * @description - Implements Javascript's `array.prototype.map` method in AutoHotkey.
  * `Array.Prototype.Map` creates a new array with the results of the callback function. Each item
@@ -187,7 +304,7 @@ Array.Prototype.DefineProp('Map', {Call: ARRAY_MAP})
  * - [Optional] The index of the current element being processed in the array.
  * - [Optional] The array map was called upon.
  * @param {Any} [ThisArg] - The value to pass as `this` when executing the callback. For a detailed
- * description, see the document `ForEach-Examples.ahk` in the repository.
+ * description, see the document `ThisArg-Example.ahk` in the repository.
  * @returns {Array} - A new array containing the values returned by the callback function.
     @example
         arr := [1,2,,4,,6,,,9]
@@ -209,7 +326,24 @@ ARRAY_MAP(Arr, Callback, ThisArg?) {
     return Result
 }
 
-Array.Prototype.DefineProp('Reduce', {Call: ARRAY_REDUCE})
+Array.Prototype.DefineProp('PushA', { Call: ARRAY_PUSHA })
+/**
+ * @description - This is the same as `Array.Prototype.Push`, except it also returns the array,
+ * allowing this method to be chained with others.
+ * @param {Array} Arr - The target array. If calling this method from an array instance, skip
+ * this parameter completely, don't leave a space for it.
+ * @param {Any:Variadic} Item - The items to add to the array.
+    @example
+        OutputDebug([1,2,3,4].PushA(5,6,7,8).Join(', ')) ; 1, 2, 3, 4, 5, 6, 7, 8
+    @
+ */
+ARRAY_PUSHA(Arr, Item*) {
+    static ARRAY_PROTOTYPE_PUSH := Array.Prototype.Push
+    ARRAY_PROTOTYPE_PUSH(Arr, Item*)
+    return Arr
+}
+
+Array.Prototype.DefineProp('Reduce', { Call: ARRAY_REDUCE })
 /**
  * @description - Implements Javascript's `array.prototype.reduce` in AutoHotkey. `Array.Prototype.Reduce` is
  * used to iterate upon the values in an array, using a VarRef parameter to generate a cumulative
@@ -261,7 +395,7 @@ ARRAY_REDUCE(Arr, Callback, InitialValue?, Default?) {
     }
 }
 
-Array.Prototype.DefineProp('Reverse', {Call: ARRAY_REVERSE})
+Array.Prototype.DefineProp('Reverse', { Call: ARRAY_REVERSE })
 /**
  * @description - Reverses the order of the elements in an array.
  * @param {Array} Arr - The array to reverse. If calling this method from an array instance, skip
@@ -283,7 +417,7 @@ ARRAY_REVERSE(Arr, Start := 1, Length?) {
     return Result
 }
 
-Array.Prototype.DefineProp('Slice', {Call: ARRAY_SLICE})
+Array.Prototype.DefineProp('Slice', { Call: ARRAY_SLICE })
 /**
  * @description - Extracts a section of an array and returns a new array. Does not mutate the
  * original array.
@@ -304,7 +438,7 @@ ARRAY_SLICE(Arr, Start := 1, Length?) {
     return Result
 }
 
-Array.Prototype.DefineProp('Splice', {Call: ARRAY_SPLICE})
+Array.Prototype.DefineProp('Splice', { Call: ARRAY_SPLICE })
 /**
  * @description - Adds and/or removes elements from an array. Mutates the original array and returns
  * the removed values.
@@ -361,3 +495,4 @@ ARRAY_SPLICE(Arr, Start, Length?, Items*) {
     }
     return Result
 }
+
