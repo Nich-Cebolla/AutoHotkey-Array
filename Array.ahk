@@ -1,7 +1,13 @@
+/*
+   Github: https://github.com/Nich-Cebolla/AutoHotkey-Array/edit/main/Array.ahk
+    Author: Nich-Cebolla
+    Version: 1.0.0
+    License: MIT
+*/
 
-Object.Prototype.DefineProp('IsConcatSpreadable', { Value: false })
-Array.Prototype.DefineProp('IsConcatSpreadable', { Value: true })
 Array.Prototype.DefineProp('Concat', { Call: ARRAY_CONCAT })
+Array.Prototype.DefineProp('IsConcatSpreadable', { Value: true })
+Object.Prototype.DefineProp('IsConcatSpreadable', { Value: false })
 /**
  * @description - Implements Javascript's `array.prototype.concat` method in AutoHotkey. To mirror
  * Javascript's implementation, this library adds on the property `IsConcatSpreadable` to all objects.
@@ -81,7 +87,6 @@ ARRAY_CONCAT(Arr, Items*) {
 }
 
 Array.Prototype.DefineProp('Every', { Call: ARRAY_EVERY })
-
 /**
  * @description - Implements Javascript's `array.prototype.every` method in AutoHotkey.
  * `Array.Prototype.Every` is used to check if all elements in an array pass a certain condition.
@@ -136,6 +141,45 @@ ARRAY_FIND(Arr, Callback) {
         if IsSet(Item) && Callback(Item, A_Index, Arr)
             return Item
     }
+}
+
+Array.Prototype.DefineProp('FindAll', { Call: ARRAY_FIND_ALL })
+/**
+ * @description - Iterates an array passing each set value to a callback function. If the callback
+ * function returns nonzero, the item and/or its index are adday to a separate array.
+ * @param {Array} Arr - The array to search. If calling this method from an array instance, skip
+ * this parameter completely, don't leave a space for it.
+ * @param {Func|BoundFunc|Closure} Callback - The function to execute on each element in the array.
+ * The function should return a nonzero value when the condition is met. The function can accept
+ * one to three parameters:
+ * - The current element being processed in the array.
+ * - [Optional] The index of the current element being processed in the array.
+ * - [Optional] The array find was called upon.
+ * @param {Boolean} [IncludeIndices=false] - If true, the index of the element is included in the
+ * result array.
+ * @param {Boolean} [IncludeItems=true] - If true, the element is included in the result array.
+ * @returns {Array} - An array containing the items and/or indices that satisfy the condition.
+ * If both `IncludeIndices` and `IncludeItems` are true, the items in the array are objects with
+ * properties { Index, Item }.
+ */
+ARRAY_FIND_ALL(Arr, Callback, IncludeIndices := false, IncludeItems := true) {
+    Result := []
+    Result.Capacity := Arr.Length
+    if IncludeIndices {
+        if IncludeItems
+            Set := (Item) => Result.Push({ Index: A_Index, Item: Item })
+        else
+            Set := (*) => Result.Push(A_Index)
+    } else if IncludeItems
+        Set := (Item) => Result.Push(Item)
+    else
+        throw Error('At least one or both of ``IncludeIndices`` and ``IncludeItems`` must be set.', -1)
+    for Item in Arr{
+        if IsSet(Item) && Callback(Item, A_Index, Arr)
+            Set(Item)
+    }
+    Result.Capacity := Result.Length
+    return Result.Length ? Result : ''
 }
 
 Array.Prototype.DefineProp('ForEach', { Call: ARRAY_FOR_EACH })
@@ -256,7 +300,7 @@ ARRAY_JOIN(Arr, Delimiter := ', ', &OutVar?, Start := 1, Length?) {
     return Trim(OutVar, Delimiter)
 }
 
-Array.Prototype.DefineProp('JoinA', { Call: ARRAY_JOINA })
+Array.Prototype.DefineProp('Join2', { Call: ARRAY_JOIN2 })
 /**
  * @description - Joins all elements of an array into a string.
  * @param {Array} Arr - The array to join. If calling this method from an array instance, skip this
@@ -273,7 +317,7 @@ Array.Prototype.DefineProp('JoinA', { Call: ARRAY_JOINA })
  * accepts the object as an argument and returns the string to add to the result string.
  * @returns {String} - The joined string.
  */
-ARRAY_JOINA(Arr, Delimiter := ', ', &OutVar?, Start := 1, Length?, UnsetItemString := '""', ObjectCallback := (Item) => '{' Type(Item) '}') {
+ARRAY_JOIN2(Arr, Delimiter := ', ', &OutVar?, Start := 1, Length?, UnsetItemString := '""', ObjectCallback := (Item) => '{' Type(Item) '}') {
     OutVar := '', Start--
     while ++Start <= (IsSet(Length) && Start + Length < Arr.Length ?  Start + Length : Arr.Length) {
         if Arr.Has(Start) {
@@ -285,6 +329,22 @@ ARRAY_JOINA(Arr, Delimiter := ', ', &OutVar?, Start := 1, Length?, UnsetItemStri
             OutVar .= UnsetItemString Delimiter
     }
     return Trim(OutVar, Delimiter)
+}
+
+Array.Prototype.DefineProp('LazySort', { Call: ARRAY_LAZY_SORT })
+/**
+ * @description - Utilizes AutoHotkey's built-in Sort function to sort an array. Does not mutate the
+ * original array. Unset indices are not represented in the resulting array. This only sorts primitive
+ * values.
+ * @param {Array} Arr - The array to sort. If calling this method from an array instance, skip
+ * this parameter completely, don't leave a space for it.
+ * @param {String} [Options] - The options to pass to the Sort
+ * function. {@link https://www.autohotkey.com/docs/v2/lib/Sort.htm}.
+ * @param {Func|BoundFunc|Closure} [Callback] - The callback function to use for sorting.
+ * @returns {Array} - The sorted array.
+ */
+ARRAY_LAZY_SORT(Arr, Options?, Callback?) {
+    return StrSplit(Sort(Arr.JoinA('`n',,,,''), Options ?? unset, Callback ?? unset), '`n')
 }
 
 Array.Prototype.DefineProp('Map', { Call: ARRAY_MAP })
@@ -326,7 +386,73 @@ ARRAY_MAP(Arr, Callback, ThisArg?) {
     return Result
 }
 
-Array.Prototype.DefineProp('PushA', { Call: ARRAY_PUSHA })
+Array.Prototype.DefineProp('Purge', { Call: ARRAY_PURGE })
+/**
+ * @description - Iterates the items in an array and removes items that match the input values.
+ * Mutates the original array.
+ * @param {Array} Arr - The array to purge. If calling this method from an array instance, skip
+ * this parameter completely, don't leave a space for it.
+ * @param {Boolean} [UnsetIndices=false] - If true, unset indices are also removed.
+ * @param {String|Number:Variadic} Items - The items to remove from the array.
+ * @returns {Array} - The purged array.
+ */
+ARRAY_PURGE(Arr, UnsetIndices := false, Items*) {
+    if Items.Length {
+        for Item in Items {
+            if IsObject(Item)
+                throw TypeError('Objects are not comparable by value. ``Purge`` accepts only primitive values.', -1)
+        }
+        if UnsetIndices
+            _LoopItemsUnset()
+        else
+            _LoopItems()
+    } else if UnsetIndices
+        _LoopUnset()
+    return Arr
+
+    _LoopItems() {
+        Indices := [], i := 0
+        while ++i <= Arr.Length {
+            if Arr.Has(i) {
+                for PurgeItem in Items {
+                    if Arr[i] == PurgeItem {
+                        Indices.Push(i)
+                        break
+                    }
+                }
+            }
+        }
+        for Index in Indices
+            Arr.RemoveAt(Index - A_Index + 1)
+    }
+    _LoopItemsUnset() {
+        Indices := [], i := 0
+        while ++i <= Arr.Length {
+            if Arr.Has(i) {
+                for PurgeItem in Items {
+                    if Arr[i] == PurgeItem {
+                        Indices.Push(i)
+                        break
+                    }
+                }
+            } else
+                Indices.Push(i)
+        }
+        for Index in Indices
+            Arr.RemoveAt(Index - A_Index + 1)
+    }
+    _LoopUnset() {
+        Indices := []
+        loop Arr.Length {
+            if !Arr.Has(A_Index)
+                Indices.Push(A_Index)
+        }
+        for Index in Indices
+            Arr.RemoveAt(Index - A_Index + 1)
+    }
+}
+
+Array.Prototype.DefineProp('Push2', { Call: ARRAY_PUSH2 })
 /**
  * @description - This is the same as `Array.Prototype.Push`, except it also returns the array,
  * allowing this method to be chained with others.
@@ -334,10 +460,10 @@ Array.Prototype.DefineProp('PushA', { Call: ARRAY_PUSHA })
  * this parameter completely, don't leave a space for it.
  * @param {Any:Variadic} Item - The items to add to the array.
     @example
-        OutputDebug([1,2,3,4].PushA(5,6,7,8).Join(', ')) ; 1, 2, 3, 4, 5, 6, 7, 8
+        OutputDebug([1,2,3,4].Push2(5,6,7,8).Join(', ')) ; 1, 2, 3, 4, 5, 6, 7, 8
     @
  */
-ARRAY_PUSHA(Arr, Item*) {
+ARRAY_PUSH2(Arr, Item*) {
     static ARRAY_PROTOTYPE_PUSH := Array.Prototype.Push
     ARRAY_PROTOTYPE_PUSH(Arr, Item*)
     return Arr
@@ -451,7 +577,7 @@ Array.Prototype.DefineProp('Splice', { Call: ARRAY_SPLICE })
  * added.
  * @returns {Array} - An array containing the removed elements.
  */
-ARRAY_SPLICE(Arr, Start, Length?, Items*) {
+ARRAY_SPLICE(Arr, Start := 1, Length?, Items*) {
     Result := []
     if Items.Length {
         i := 0
@@ -496,3 +622,104 @@ ARRAY_SPLICE(Arr, Start, Length?, Items*) {
     return Result
 }
 
+Array.Prototype.DefineProp('Unique', { Call: ARRAY_UNIQUE })
+/**
+ * @description - Returns an array of each unique value contained in the input array.
+ * @param {Array} Arr - The array to iterate. If calling this method from an array instance, skip
+ * this parameter completely, don't leave a space for it.
+ * @param {Integer} [Start=1] - The index to start the iteration from.
+ * @param {Integer} [End] - The index to end the iteration. If unset, the iteration will continue
+ * until the end of the array.
+ * @param {Boolean} [StrictType=true] - If true, the comparison will only return true if the type
+ * of the value in the array matches the type of the value being compared.
+ * @param {Boolean} [CaseSense=true] - If true, the comparison will be case-sensitive.
+ * @param {Func|BoundFunc|Closure} [Callback] - The callback function to use for comparison. The
+ * callback function should accept the item as its only parameter and return the value to compare.
+ * @returns {Array} - A new array containing each unique value from the input array.
+ */
+ARRAY_UNIQUE(Arr, Start := 1, Length?, StrictType := true, CaseSense := true, Callback?) {
+    local Item
+    Values := Map()
+    Values.CaseSense := CaseSense
+    Result := []
+    if IsSet(Callback)
+        Compare := StrictType ? _CompareCallback : _CompareAnyTypeCallback
+    else
+        Compare := StrictType ? _Compare : _CompareAnyType
+    i := Start - 1
+    if !IsSet(End)
+        End := Arr.Length
+    loop End - i {
+        if Arr.Has(++i) {
+            Item := Arr[i]
+            Compare()
+        }
+    }
+    return Result
+
+    _Compare() => __Compare(Item)
+    _CompareAnyType() => __Compare(String(Item))
+    _CompareCallback() => __Compare(Callback(Item))
+    _CompareAnyTypeCallback() => __Compare(String(Callback(Item)))
+    __Compare(_Item) {
+        if !Values.Has(_Item) {
+            Values.Set(_Item, 1)
+            Result.Push(Item)
+        }
+    }
+}
+
+Array.Prototype.DefineProp('Unique2', { Call: ARRAY_UNIQUE2 })
+/**
+ * @description - Iterates the input array, and for each unique value adds an object to an array
+ * then returns the resulting array.
+ * @param {Array} Arr - The array to iterate. If calling this method from an array instance, skip
+ * this parameter completely, don't leave a space for it.
+ * @param {Integer} [Start=1] - The index to start the iteration from.
+ * @param {Integer} [End] - The index to end the iteration. If unset, the iteration will continue
+ * until the end of the array.
+ * @param {Boolean} [StrictType=true] - If true, the comparison will only return true if the type
+ * of the value in the array matches the type of the value being compared.
+ * @param {Boolean} [CaseSense=true] - If true, the comparison will be case-sensitive.
+ * @param {Func|BoundFunc|Closure} [Callback] - The callback function to use for comparison. The
+ * callback function should accept the item as its only parameter and return the value to compare.
+ * @returns {Array} - A new array containing an object for each unique value. Each object has these
+ * properties:
+ * - Index: An array of indices at which the value was located.
+ * - Count: The number of instances of the value in the array.
+ * - Value: The unmodified first occurrence of the value in the array.
+ */
+ARRAY_UNIQUE2(Arr, Start := 1, Length?, StrictType := true, CaseSense := true, Callback?) {
+    local Item
+    Values := Map()
+    Values.CaseSense := CaseSense
+    Result := []
+    if IsSet(Callback)
+        Compare := StrictType ? _CompareCallback : _CompareAnyTypeCallback
+    else
+        Compare := StrictType ? _Compare : _CompareAnyType
+    i := Start - 1
+    if !IsSet(End)
+        End := Arr.Length
+    loop End - i {
+        if Arr.Has(++i) {
+            Item := Arr[i]
+            Compare()
+        }
+    }
+    return Result
+
+    _Compare() => __Compare(Item)
+    _CompareAnyType() => __Compare(String(Item))
+    _CompareCallback() => __Compare(Callback(Item))
+    _CompareAnyTypeCallback() => __Compare(String(Callback(Item)))
+    __Compare(_Item) {
+        if Values.Has(_Item) {
+            Values.Get(_Item).Count++
+            Values.Get(_Item).Index.Push(A_Index)
+        } else {
+            Values.Set(_Item, { Index: [A_Index], Count: 1, Value: Item })
+            Result.Push(Values.Get(_Item))
+        }
+    }
+}
