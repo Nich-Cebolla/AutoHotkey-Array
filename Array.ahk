@@ -191,14 +191,19 @@ Array.Prototype.DefineProp('Flat', { Call: ARRAY_FLAT })
  * the result array as-is.
  * @param {Array} Arr - The array to flatten. If calling this method from an array instance, skip
  * this parameter completely, don't leave a space for it.
- * @param {Integer} [Depth=1] - The maximum depth to recurse into nested arrays.
+ * @param {Integer} [Depth=-1] - The maximum depth to recurse into nested arrays. A depth of -1
+ * indicates that all nested arrays should be flattened.
  * @returns {Array} - A new array containing the flattened elements.
  */
-ARRAY_FLAT(Arr, Depth := 1) {
+ARRAY_FLAT(Arr, Depth := -1) {
     Result := []
     Result.Capacity := Arr.Length
-    i := 0
-    _Flat(Arr)
+    if Depth == -1
+        _Flat2(Arr)
+    else {
+        i := 0
+        _Flat(Arr)
+    }
     return Result
 
     _Flat(Source) {
@@ -215,6 +220,16 @@ ARRAY_FLAT(Arr, Depth := 1) {
                 Result.Push(Item)
         }
         i--
+    }
+    _Flat2(Source) {
+        for Item in Source {
+            if !IsSet(Item)
+                continue
+            if Item is Array
+                _Flat2(Item)
+            else
+                Result.Push(Item)
+        }
     }
 }
 
