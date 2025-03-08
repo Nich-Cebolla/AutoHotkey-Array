@@ -182,6 +182,42 @@ ARRAY_FIND_ALL(Arr, Callback, IncludeIndices := false, IncludeItems := true) {
     return Result.Length ? Result : ''
 }
 
+Array.Prototype.DefineProp('Flat', { Call: ARRAY_FLAT })
+/**
+ * @description - Implements Javascript's `array.prototype.flat` method in AutoHotkey.
+ * `Array.Prototype.Flat` iterates the items in the array. If an item is unset, it is skipped. If
+ * an item is an array and the current depth is less than or equal to the indicated `Depth`,
+ * it's values are concatenated to the result array. For all other items, the item is added to
+ * the result array as-is.
+ * @param {Array} Arr - The array to flatten. If calling this method from an array instance, skip
+ * this parameter completely, don't leave a space for it.
+ * @param {Integer} [Depth=1] - The maximum depth to recurse into nested arrays.
+ * @returns {Array} - A new array containing the flattened elements.
+ */
+ARRAY_FLAT(Arr, Depth := 1) {
+    Result := []
+    Result.Capacity := Arr.Length
+    i := 0
+    _Flat(Arr)
+    return Result
+
+    _Flat(Source) {
+        i++
+        for Item in Source {
+            if !IsSet(Item)
+                continue
+            if Item is Array {
+                if i < Depth
+                    _Flat(Item)
+                else
+                    Result.Push(Item*)
+            } else
+                Result.Push(Item)
+        }
+        i--
+    }
+}
+
 Array.Prototype.DefineProp('ForEach', { Call: ARRAY_FOR_EACH })
 /**
  * @description - Implements Javascript's `array.prototype.forEach` method in AutoHotkey.
