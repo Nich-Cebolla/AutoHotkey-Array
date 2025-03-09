@@ -182,6 +182,13 @@ ARRAY_FIND_ALL(Arr, Callback, IncludeIndices := false, IncludeItems := true) {
     return Result.Length ? Result : ''
 }
 
+/*
+   Github: https://github.com/Nich-Cebolla/AutoHotkey-Array/edit/main/Array.ahk
+    Author: Nich-Cebolla
+    Version: 1.0.0
+    License: MIT
+*/
+
 Array.Prototype.DefineProp('Flat', { Call: ARRAY_FLAT })
 /**
  * @description - Implements Javascript's `array.prototype.flat` method in AutoHotkey.
@@ -212,10 +219,15 @@ ARRAY_FLAT(Arr, Depth := -1) {
             if !IsSet(Item)
                 continue
             if Item is Array {
-                if i < Depth
+                if i < Depth {
+                    Result.Capacity += Item.Length - 1
                     _Flat(Item)
-                else
-                    Result.Push(Item*)
+                } else {
+                    for _Item in Item {
+                        if IsSet(_Item)
+                            Result.Push(_Item)
+                    }
+                }
             } else
                 Result.Push(Item)
         }
@@ -225,9 +237,10 @@ ARRAY_FLAT(Arr, Depth := -1) {
         for Item in Source {
             if !IsSet(Item)
                 continue
-            if Item is Array
+            if Item is Array {
+                Result.Capacity += Item.Length - 1
                 _Flat2(Item)
-            else
+            } else
                 Result.Push(Item)
         }
     }
